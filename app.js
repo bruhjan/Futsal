@@ -1,11 +1,19 @@
 // app.js
 
+import { db } from "./firebase-config.js";
 import * as DB from "./db.js";
 import * as UI from "./ui.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const auth = getAuth();
 
 // --- STATE MANAGEMENT ---
-// This object will hold all our data, acting as a single source of truth.
 const state = {
+  isAdmin: false,
   currentTeam: { name: "", players: [] },
   teams: [],
   players: [],
@@ -15,17 +23,29 @@ const state = {
 
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => {
-  initializeApp();
+  onAuthStateChanged(auth, (user) => {
+    const loader = document.getElementById("loader");
+    const appContainer = document.getElementById("app-container");
+
+    state.isAdmin = !!user; // Sets to true if user exists, false otherwise
+    console.log(
+      state.isAdmin
+        ? `Admin user signed in: ${user.email}`
+        : "Proceeding as Guest."
+    );
+
+    configureUIForRole(state.isAdmin);
+    initializeApp();
+
+    loader.style.display = "none";
+    appContainer.style.display = "block";
+  });
+
   setupEventListeners();
 });
 
-/**
- * Fetches all data from Firestore and initializes the UI.
- */
 async function initializeApp() {
-  console.log("Initializing app and fetching data...");
   try {
-    // Fetch all data collections in parallel
     const [teams, players, matches, playerMatchStats] = await Promise.all([
       DB.getTeams(),
       DB.getPlayers(),
@@ -33,38 +53,26 @@ async function initializeApp() {
       DB.getPlayerMatchStats(),
     ]);
 
-    // Update the state
     state.teams = teams;
     state.players = players;
     state.matches = matches;
     state.playerMatchStats = playerMatchStats;
 
-    console.log("Data fetched successfully:", state);
-
-    // Render the initial UI with the fetched data
     refreshAllTabs();
   } catch (error) {
     console.error("Failed to initialize the application:", error);
-    alert(
-      "Error: Could not load tournament data. Please check the console and refresh."
-    );
+    alert("Error: Could not load tournament data.");
   }
 }
 
-/**
- * Sets up all the event listeners for the application.
- */
 function setupEventListeners() {
-  // --- Navigation Tabs ---
   document.querySelector(".nav-tabs").addEventListener("click", (e) => {
     if (e.target.matches(".nav-tab")) {
-      const tabName = e.target.dataset.tab;
-      UI.showTab(tabName);
-      refreshTabContent(tabName);
+      UI.showTab(e.target.dataset.tab);
+      refreshTabContent(e.target.dataset.tab);
     }
   });
 
-  // --- Team Registration ---
   document.getElementById("addPlayerBtn").addEventListener("click", addPlayer);
   document.getElementById("saveTeamBtn").addEventListener("click", saveTeam);
   document
@@ -74,41 +82,65 @@ function setupEventListeners() {
     if (e.key === "Enter") addPlayer();
   });
 
-  // --- Schedule Generation ---
   document
     .getElementById("generateScheduleBtn")
     .addEventListener("click", generateSchedule);
-
-  // --- Record Results (using event delegation) ---
-  document.getElementById("resultsDisplay").addEventListener("click", (e) => {
-    if (e.target.classList.contains("record-result-btn")) {
-      const matchId = e.target.dataset.matchId;
-      recordResult(matchId);
-    }
-  });
-
-  // --- Tournament Reset ---
   document
     .getElementById("resetTournamentBtn")
     .addEventListener("click", resetTournament);
+
+  // Listeners for Login and Logout buttons
+  document.getElementById("logoutBtn").addEventListener("click", handleLogout);
+  document.getElementById("loginRedirectBtn").addEventListener("click", () => {
+    window.location.href = "index.html"; // Redirect guest to login page
+  });
+
+  document.getElementById("resultsDisplay").addEventListener("click", (e) => {
+    if (e.target.classList.contains("record-result-btn")) {
+      recordResult(e.target.dataset.matchId);
+    }
+  });
+}
+
+function configureUIForRole(isAdmin) {
+  const adminOnlyElements = [
+    document.querySelector('[data-tab="results"]'),
+    document.getElementById("team-registration-card"),
+    document.getElementById("generateScheduleBtn"),
+    document.getElementById("resetTournamentBtn"),
+  ];
+
+  const loginBtn = document.getElementById("loginRedirectBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  if (isAdmin) {
+    adminOnlyElements.forEach((el) => {
+      if (el) el.style.display = "block";
+    });
+    logoutBtn.style.display = "block";
+    loginBtn.style.display = "none";
+  } else {
+    adminOnlyElements.forEach((el) => {
+      if (el) el.style.display = "none";
+    });
+    logoutBtn.style.display = "none";
+    loginBtn.style.display = "block";
+
+    const activeTab = document.querySelector(".nav-tab.active");
+    if (activeTab && activeTab.dataset.tab === "results") {
+      UI.showTab("schedule");
+    }
+  }
 }
 
 // --- UI REFRESH LOGIC ---
-
-/**
- * Refreshes the content of all tabs based on the current state.
- */
 function refreshAllTabs() {
   refreshTabContent("teams");
   refreshTabContent("schedule");
-  refreshTabContent("results");
+  if (state.isAdmin) refreshTabContent("results");
   refreshTabContent("stats");
 }
 
-/**
- * Refreshes the content of a specific tab.
- * @param {string} tabName - The name of the tab to refresh.
- */
 function refreshTabContent(tabName) {
   switch (tabName) {
     case "teams":
@@ -118,8 +150,10 @@ function refreshTabContent(tabName) {
       UI.updateScheduleDisplay(state.matches);
       break;
     case "results":
-      const pendingMatches = state.matches.filter((m) => !m.Completed);
-      UI.updateResultsDisplay(pendingMatches, state.players);
+      if (state.isAdmin) {
+        const pendingMatches = state.matches.filter((m) => !m.Completed);
+        UI.updateResultsDisplay(pendingMatches, state.players);
+      }
       break;
     case "stats":
       UI.updateStatsDisplay(state.teams, state.players, state.playerMatchStats);
@@ -128,18 +162,21 @@ function refreshTabContent(tabName) {
 }
 
 // --- CORE LOGIC FUNCTIONS ---
+async function handleLogout() {
+  try {
+    await signOut(auth);
+    window.location.href = "index.html";
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+}
 
 function addPlayer() {
   const playerNameInput = document.getElementById("playerName");
   const playerName = playerNameInput.value.trim();
-  if (!playerName) {
-    alert("Player name cannot be empty.");
-    return;
-  }
-  if (state.currentTeam.players.length >= 7) {
-    alert("Maximum of 7 players per team.");
-    return;
-  }
+  if (!playerName) return alert("Player name cannot be empty.");
+  if (state.currentTeam.players.length >= 7)
+    return alert("Maximum of 7 players per team.");
   state.currentTeam.players.push(playerName);
   playerNameInput.value = "";
   UI.updateCurrentTeamDisplay(state.currentTeam);
@@ -152,51 +189,43 @@ function clearCurrentTeam() {
 }
 
 async function saveTeam() {
+  if (!state.isAdmin) return alert("Guests cannot register teams.");
   const teamNameInput = document.getElementById("teamName");
   const teamName = teamNameInput.value.trim();
-
-  if (!teamName) {
-    alert("Team name must be filled.");
-    return;
-  }
-  if (state.currentTeam.players.length !== 7) {
-    alert("Team must have exactly 7 players.");
-    return;
-  }
+  if (!teamName) return alert("Team name must be filled.");
+  if (state.currentTeam.players.length !== 7)
+    return alert("Team must have exactly 7 players.");
   if (
     state.teams.some((team) => team.id.toLowerCase() === teamName.toLowerCase())
-  ) {
-    alert("A team with this name already exists.");
-    return;
-  }
+  )
+    return alert("A team with this name already exists.");
 
   try {
     await DB.saveTeam(teamName, state.currentTeam.players);
     alert(`Team "${teamName}" saved successfully!`);
     clearCurrentTeam();
-    initializeApp(); // Re-fetch all data to update the state
+    initializeApp();
   } catch (error) {
     console.error("Error saving team: ", error);
-    alert("Failed to save team. See console for details.");
   }
 }
 
 async function generateSchedule() {
-  if (state.teams.length !== 4) {
-    alert("Need exactly 4 teams to generate a schedule.");
-    return;
-  }
+  if (!state.isAdmin) return alert("Guests cannot generate schedules.");
+  if (state.teams.length !== 4)
+    return alert("Need exactly 4 teams to generate a schedule.");
+
   try {
     await DB.generateSchedule(state.teams);
     alert("Schedule generated successfully!");
-    initializeApp(); // Re-fetch all data
+    initializeApp();
   } catch (error) {
     console.error("Error generating schedule: ", error);
-    alert("Failed to generate schedule.");
   }
 }
 
 async function recordResult(matchId) {
+  if (!state.isAdmin) return;
   const matchData = state.matches.find((m) => m.id === matchId);
   if (!matchData) return;
 
@@ -205,24 +234,19 @@ async function recordResult(matchId) {
   const awayGoals =
     parseInt(document.getElementById(`awayGoals_${matchId}`).value, 10) || 0;
 
-  // Collect player stats from the specific match card
   const matchCard = document.querySelector(
     `.match-card[data-match-id="${matchId}"]`
   );
   const playerStatInputs = matchCard.querySelectorAll("[data-player-id]");
 
-  const playerStats = [];
   const statsByPlayer = {};
-
   playerStatInputs.forEach((input) => {
     const playerId = input.dataset.playerId;
     const statType = input.dataset.stat;
     const value = parseInt(input.value, 10) || 0;
-
     if (value > 0) {
-      if (!statsByPlayer[playerId]) {
+      if (!statsByPlayer[playerId])
         statsByPlayer[playerId] = { playerId, goals: 0, assists: 0 };
-      }
       statsByPlayer[playerId][statType] = value;
     }
   });
@@ -236,29 +260,25 @@ async function recordResult(matchId) {
       Object.values(statsByPlayer)
     );
     alert("Result recorded successfully!");
-    initializeApp(); // Re-fetch all data to reflect the changes
+    initializeApp();
   } catch (error) {
     console.error("Error recording result: ", error);
-    alert("Failed to record result.");
   }
 }
 
 async function resetTournament() {
+  if (!state.isAdmin) return alert("Guests cannot reset the tournament.");
   if (
     confirm(
       "Are you sure you want to reset all match results and player stats? This action cannot be undone."
     )
   ) {
     try {
-      console.log("Resetting tournament data...");
       await DB.resetTournamentData();
       alert("Tournament progress has been successfully reset.");
-      initializeApp(); // Re-fetch and re-render everything
+      initializeApp();
     } catch (error) {
       console.error("Failed to reset tournament:", error);
-      alert(
-        "An error occurred while resetting the tournament. Please check the console."
-      );
     }
   }
 }

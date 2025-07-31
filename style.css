@@ -1,6 +1,7 @@
-/* Paste all the CSS from your original HTML file here */
+/* The @import rule must be at the very top of the file */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
+/* --- Base Styles (Restored from your original file) --- */
 * {
     margin: 0;
     padding: 0;
@@ -28,13 +29,8 @@ body::before {
 }
 
 @keyframes grassMove {
-    0% {
-        transform: translateX(0);
-    }
-
-    100% {
-        transform: translateX(-10px);
-    }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-10px); }
 }
 
 .container {
@@ -43,15 +39,93 @@ body::before {
     padding: 20px;
 }
 
+/* --- Login Page Styles (Carefully Added) --- */
+.login-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+}
+
+.login-card { padding: 40px; }
+
+.guest-login {
+    text-align: center;
+    margin-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 20px;
+}
+
+.guest-login p {
+    margin-bottom: 10px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.login-error {
+    color: #dc2626;
+    margin-top: 15px;
+    font-weight: 500;
+    text-align: center;
+    height: 20px;
+}
+
+/* --- Loader Styles --- */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #0f4c75;
+    z-index: 999;
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, .3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* --- Header Styles (Restored and Modified for Logout) --- */
 .header {
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     border-radius: 25px;
     padding: 40px;
-    text-align: center;
     margin-bottom: 30px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-title {
+    text-align: center;
+    flex-grow: 1;
+}
+
+.header-buttons {
+    flex-shrink: 0;
+}
+
+.header-buttons .btn {
+    margin: 0;
 }
 
 .header::before {
@@ -60,18 +134,15 @@ body::before {
     font-size: 200px;
     opacity: 0.1;
     top: -50px;
-    right: -50px;
+    /* MOVED to the left */
+    left: -50px;
+    right: auto; /* unset right property */
     animation: rotate 20s linear infinite;
 }
 
 @keyframes rotate {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .header h1 {
@@ -84,13 +155,8 @@ body::before {
 }
 
 @keyframes glow {
-    from {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
-    }
-
-    to {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.4);
-    }
+    from { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2); }
+    to { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.4); }
 }
 
 .header p {
@@ -99,6 +165,7 @@ body::before {
     font-weight: 300;
 }
 
+/* --- Rest of the Original Styles --- */
 .nav-container {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -142,9 +209,7 @@ body::before {
     z-index: -1;
 }
 
-.nav-tab.active::before {
-    left: 0;
-}
+.nav-tab.active::before { left: 0; }
 
 .nav-tab.active {
     color: white;
@@ -162,20 +227,11 @@ body::before {
     animation: fadeInUp 0.6s ease-out;
 }
 
-.tab-content.active {
-    display: block;
-}
+.tab-content.active { display: block; }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .card {
@@ -194,9 +250,7 @@ body::before {
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15);
 }
 
-.form-group {
-    margin-bottom: 25px;
-}
+.form-group { margin-bottom: 25px; }
 
 .form-group label {
     display: block;
@@ -255,38 +309,20 @@ body::before {
     z-index: -1;
 }
 
-.btn:hover::before {
-    left: 0;
-}
+.btn:hover::before { left: 0; }
 
 .btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
 }
 
-.btn-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
+.btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.btn-success::before { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+.btn-success:hover { box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4); }
 
-.btn-success::before {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-}
-
-.btn-success:hover {
-    box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.btn-danger::before {
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-}
-
-.btn-danger:hover {
-    box-shadow: 0 15px 35px rgba(239, 68, 68, 0.4);
-}
+.btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+.btn-danger::before { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); }
+.btn-danger:hover { box-shadow: 0 15px 35px rgba(239, 68, 68, 0.4); }
 
 .team-card {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -310,22 +346,9 @@ body::before {
 }
 
 @keyframes bounce {
-
-    0%,
-    20%,
-    50%,
-    80%,
-    100% {
-        transform: translateY(0);
-    }
-
-    40% {
-        transform: translateY(-10px);
-    }
-
-    60% {
-        transform: translateY(-5px);
-    }
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
 }
 
 .team-card:hover {
@@ -349,13 +372,8 @@ body::before {
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .player-grid {
@@ -450,15 +468,8 @@ body::before {
     letter-spacing: 0.5px;
 }
 
-.status-pending {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    color: white;
-}
-
-.status-completed {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-}
+.status-pending { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+.status-completed { background: linear-gradient(135deg, #10b981, #059669); color: white; }
 
 .player-stats-grid {
     display: grid;
@@ -491,19 +502,11 @@ body::before {
     border-bottom: 1px solid #e2e8f0;
 }
 
-.player-stat-row:last-child {
-    border-bottom: none;
-}
+.player-stat-row:last-child { border-bottom: none; }
 
-.player-name {
-    font-weight: 500;
-    color: #374151;
-}
+.player-name { font-weight: 500; color: #374151; }
 
-.stat-inputs {
-    display: flex;
-    gap: 10px;
-}
+.stat-inputs { display: flex; gap: 10px; }
 
 .stat-input {
     width: 60px;
@@ -543,17 +546,8 @@ body::before {
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.5;
-    }
-
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
 }
 
 .stats-card:hover {
@@ -584,15 +578,8 @@ body::before {
     font-size: 1.1rem;
 }
 
-.rank-badge.first {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #92400e;
-}
-
-.rank-badge.second {
-    background: linear-gradient(135deg, #c0c0c0, #e5e7eb);
-    color: #374151;
-}
+.rank-badge.first { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #92400e; }
+.rank-badge.second { background: linear-gradient(135deg, #c0c0c0, #e5e7eb); color: #374151; }
 
 .stat-row {
     display: flex;
@@ -600,6 +587,31 @@ body::before {
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid #f1f5f9;
+}
+
+.stat-row:last-child { border-bottom: none; }
+
+.stat-label { font-weight: 500; color: #64748b; }
+.stat-value { font-weight: 700; color: #1e293b; font-size: 1.1rem; }
+
+.site-footer {
+    text-align: center;
+    padding: 25px;
+    margin-top: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .header { text-align: center; }
+    .header h1 { font-size: 2.5rem; }
+    .nav-tabs { flex-direction: column; }
+    .nav-tab { min-width: auto; }
+    .player-stats-grid { grid-template-columns: 1fr; gap: 20px; }
+    .match-header { flex-direction: column; align-items: stretch; }
+    .stats-grid { grid-template-columns: 1fr; }
 }
 
 .stat-row:last-child {
@@ -990,13 +1002,4 @@ body::before {
     .mvp-crown {
         font-size: 2rem;
     }
-}
-
-.site-footer {
-    text-align: center;
-    padding: 25px;
-    margin-top: 20px;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 500;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }

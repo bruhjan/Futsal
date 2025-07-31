@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUTSAL 2025 FMS Delhi - Tournament Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Loading Spinner -->
+    <div id="loader" class="loader-container">
+        <div class="loading"></div>
+    </div>
+
+    <!-- Main App Container (hidden by default) -->
+    <div id="app-container" style="display: none;">
+        <div class="container">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="header-title">
+                    <h1>FUTSAL 2025 FMS Delhi</h1>
+                    <p>Professional Tournament Management System</p>
+                </div>
+                <div class="header-buttons">
+                    <button id="loginRedirectBtn" class="btn">Login</button>
+                    <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+
+            <!-- NAVIGATION -->
+            <div class="nav-container">
+                <div class="nav-tabs">
+                    <button class="nav-tab active" data-tab="teams">Teams & Players</button>
+                    <button class="nav-tab" data-tab="schedule">Match Schedule</button>
+                    <button class="nav-tab" data-tab="results">Game Logs</button>
+                    <button class="nav-tab" data-tab="stats">Statistics</button>
+                    <button class="nav-tab" data-tab="finals" style="display: none;">Finals</button>
+                </div>
+            </div>
+
+            <!-- TABS CONTENT -->
+            <div id="teams" class="tab-content active">
+                <div id="team-registration-card" class="card">
+                    <h2>Team Registration</h2>
+                    <div class="alert alert-info"><strong>🏆 Tournament Setup:</strong> Register 4 teams with exactly 7
+                        players each.</div>
+                    <div class="form-group">
+                        <label for="teamName">Team Name:</label>
+                        <input type="text" id="teamName" placeholder="Enter your team name">
+                    </div>
+                    <div class="form-group">
+                        <label for="playerName">Add Players (one at a time):</label>
+                        <input type="text" id="playerName" placeholder="Enter player name">
+                        <button id="addPlayerBtn" class="btn">Add Player</button>
+                    </div>
+                    <div id="currentTeamPlayers"></div>
+                    <button id="saveTeamBtn" class="btn btn-success">Save Team</button>
+                    <button id="clearTeamBtn" class="btn">Clear</button>
+                </div>
+                <div id="teamsDisplay"></div>
+            </div>
+
+            <div id="schedule" class="tab-content">
+                <div class="card">
+                    <h2>Match Schedule</h2>
+                    <div class="alert alert-info"><strong>⚽ Round-Robin Format:</strong> Schedule generates
+                        automatically.</div>
+                    <button id="generateScheduleBtn" class="btn">Generate Schedule</button>
+                </div>
+                <div id="scheduleDisplay"></div>
+            </div>
+
+            <div id="results" class="tab-content">
+                <div class="card">
+                    <h2>Game Logs</h2>
+                    <div class="alert alert-info"><strong>📊 Detailed Match Recording:</strong> Log match results and
+                        individual player stats.</div>
+                    <button id="resetTournamentBtn" class="btn btn-danger" style="margin-top: 15px;">Reset All
+                        Progress</button>
+                </div>
+                <div id="resultsDisplay"></div>
+            </div>
+
+            <div id="stats" class="tab-content">
+                <div class="card">
+                    <h2>Tournament Statistics</h2>
+                </div>
+                <div id="statsDisplay"></div>
+                <div id="podiumDisplay"></div>
+            </div>
+
+            <div id="finals" class="tab-content">
+                <div class="card">
+                    <h2>Championship Final</h2>
+                    <div class="alert alert-success"><strong>🏆 The Ultimate Showdown:</strong> The top 2 teams battle
+                        for glory!</div>
+                </div>
+                <div id="finalsDisplay"></div>
+            </div>
+        </div>
+        <footer class="site-footer">Made with ❤️ by Rajan Rathi and Pratyush Kumar (141)</footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
