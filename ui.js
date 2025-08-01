@@ -1,30 +1,18 @@
 // ui.js
 
-/**
- * Handles switching between tabs.
- * @param {string} tabName - The name of the tab to show.
- */
 export function showTab(tabName) {
-  // Hide all tab content
   document
     .querySelectorAll(".tab-content")
     .forEach((tab) => tab.classList.remove("active"));
-  // Deactivate all nav tabs
   document
     .querySelectorAll(".nav-tab")
     .forEach((tab) => tab.classList.remove("active"));
-
-  // Show the selected tab content and activate the nav tab
   document.getElementById(tabName).classList.add("active");
   document
     .querySelector(`.nav-tab[data-tab="${tabName}"]`)
     .classList.add("active");
 }
 
-/**
- * Displays the list of players added to the current team being registered.
- * @param {Object} currentTeam - The team object with a 'players' array.
- */
 export function updateCurrentTeamDisplay(currentTeam) {
   const display = document.getElementById("currentTeamPlayers");
   if (currentTeam.players.length === 0) {
@@ -48,11 +36,6 @@ export function updateCurrentTeamDisplay(currentTeam) {
   display.innerHTML = html;
 }
 
-/**
- * Renders the list of all registered teams and their players.
- * @param {Array<Object>} teams - Array of team objects from Firestore.
- * @param {Array<Object>} players - Array of player objects from Firestore.
- */
 export function updateTeamsDisplay(teams, players) {
   const display = document.getElementById("teamsDisplay");
   if (teams.length === 0) {
@@ -88,19 +71,16 @@ export function updateTeamsDisplay(teams, players) {
   display.innerHTML = html;
 }
 
-/**
- * Renders the match schedule.
- * @param {Array<Object>} matches - Array of match objects.
- */
 export function updateScheduleDisplay(matches) {
   const display = document.getElementById("scheduleDisplay");
-  if (matches.length === 0) {
+  const roundRobinMatches = matches.filter((m) => !m.isFinal);
+  if (roundRobinMatches.length === 0) {
     display.innerHTML =
-      '<div class="alert alert-info">No matches scheduled. Generate schedule once 4 teams are registered.</div>';
+      '<div class="alert alert-info">No matches scheduled.</div>';
     return;
   }
 
-  const html = matches
+  const html = roundRobinMatches
     .map(
       (match) => `
         <div class="match-card">
@@ -128,144 +108,182 @@ export function updateScheduleDisplay(matches) {
   display.innerHTML = html;
 }
 
-/**
- * Renders the UI for recording match results.
- * @param {Array<Object>} pendingMatches - Matches that are not yet completed.
- * @param {Array<Object>} players - All registered players.
- */
-export function updateResultsDisplay(pendingMatches, players) {
+export function updateResultsDisplay(
+  pendingMatches,
+  players,
+  showCreateFinalButton
+) {
   const display = document.getElementById("resultsDisplay");
-  if (pendingMatches.length === 0) {
-    display.innerHTML =
+  let html = "";
+
+  if (pendingMatches.length > 0) {
+    const getPlayersForTeam = (teamId) =>
+      players.filter((p) => p.Team === teamId);
+    html += pendingMatches
+      .map(
+        (match) => `
+            <div class="match-card" data-match-id="${match.id}">
+                <div class="match-header">
+                    <div class="match-teams">${
+                      match.Home
+                    } <span class="vs-badge">VS</span> ${match.Away}</div>
+                </div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin: 20px 0;">
+                    <input type="number" id="homeGoals_${
+                      match.id
+                    }" class="stat-input" min="0" placeholder="0">
+                    <span>-</span>
+                    <input type="number" id="awayGoals_${
+                      match.id
+                    }" class="stat-input" min="0" placeholder="0">
+                </div>
+                <div class="player-stats-grid">
+                    ${[match.Home, match.Away]
+                      .map(
+                        (teamId) => `
+                        <div class="team-players">
+                            <h4>⚽ ${teamId} Players</h4>
+                            ${getPlayersForTeam(teamId)
+                              .map(
+                                (p) => `
+                                <div class="player-stat-row">
+                                    <span class="player-name">${p.Name}</span>
+                                    <div class="stat-inputs">
+                                        <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="goals" min="0" placeholder="G">
+                                        <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="assists" min="0" placeholder="A">
+                                    </div>
+                                </div>`
+                              )
+                              .join("")}
+                        </div>
+                    `
+                      )
+                      .join("")}
+                </div>
+                <div style="text-align: center; margin-top: 25px;">
+                    <button class="btn btn-success record-result-btn" data-match-id="${
+                      match.id
+                    }">Record Match Result</button>
+                </div>
+            </div>
+        `
+      )
+      .join("");
+  } else {
+    html =
       '<div class="alert alert-success">All round-robin matches completed!</div>';
-    return;
   }
 
-  const getPlayersForTeam = (teamId) =>
-    players.filter((p) => p.Team === teamId);
-
-  const html = pendingMatches
-    .map((match) => {
-      const homeTeamPlayers = getPlayersForTeam(match.Home);
-      const awayTeamPlayers = getPlayersForTeam(match.Away);
-
-      return `
-        <div class="match-card" data-match-id="${match.id}">
-            <div class="match-header">
-                <div class="match-teams">${
-                  match.Home
-                } <span class="vs-badge">VS</span> ${match.Away}</div>
+  if (showCreateFinalButton) {
+    html += `
+            <div class="card" style="text-align: center;">
+                <h3 style="margin-bottom: 15px;">Ready for the Final?</h3>
+                <p style="margin-bottom: 20px;">All group stage matches are complete. You can now create the championship final.</p>
+                <button id="createFinalBtn" class="btn btn-success">🏆 Create Final Match</button>
             </div>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin: 20px 0;">
-                <input type="number" id="homeGoals_${
-                  match.id
-                }" class="stat-input" min="0" placeholder="0">
-                <span>-</span>
-                <input type="number" id="awayGoals_${
-                  match.id
-                }" class="stat-input" min="0" placeholder="0">
-            </div>
-            <div class="player-stats-grid">
-                <div class="team-players">
-                    <h4>⚽ ${match.Home} Players</h4>
-                    ${homeTeamPlayers
-                      .map(
-                        (p) => `
-                        <div class="player-stat-row">
-                            <span class="player-name">${p.Name}</span>
-                            <div class="stat-inputs">
-                                <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="goals" min="0" placeholder="G">
-                                <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="assists" min="0" placeholder="A">
-                            </div>
-                        </div>`
-                      )
-                      .join("")}
-                </div>
-                <div class="team-players">
-                    <h4>⚽ ${match.Away} Players</h4>
-                    ${awayTeamPlayers
-                      .map(
-                        (p) => `
-                        <div class="player-stat-row">
-                            <span class="player-name">${p.Name}</span>
-                            <div class="stat-inputs">
-                                <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="goals" min="0" placeholder="G">
-                                <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="assists" min="0" placeholder="A">
-                            </div>
-                        </div>`
-                      )
-                      .join("")}
-                </div>
-            </div>
-            <div style="text-align: center; margin-top: 25px;">
-                <button class="btn btn-success record-result-btn" data-match-id="${
-                  match.id
-                }">Record Match Result</button>
-            </div>
-        </div>
         `;
-    })
-    .join("");
+  }
+
   display.innerHTML = html;
 }
 
-/**
- * Renders the statistics page with leaderboards and team standings.
- * @param {Array<Object>} teams - All team objects.
- * @param {Array<Object>} players - All player objects.
- * @param {Array<Object>} playerMatchStats - All player_match_stat objects.
- */
 export function updateStatsDisplay(teams, players, playerMatchStats) {
   const display = document.getElementById("statsDisplay");
+  if (teams.length === 0) {
+    display.innerHTML =
+      '<div class="alert alert-info">No teams registered yet.</div>';
+    return;
+  }
 
-  // 1. Aggregate Player Stats
-  const playerTotals = {};
+  const allPlayersWithStats = [];
   players.forEach((p) => {
-    playerTotals[p.id] = { ...p, goals: 0, assists: 0, mvpPoints: 0 };
+    const stats = playerMatchStats.filter((s) => s["Player ID"] === p.id);
+    const goals = stats.reduce((sum, s) => sum + s.Goals, 0);
+    const assists = stats.reduce((sum, s) => sum + s.Assists, 0);
+    allPlayersWithStats.push({
+      ...p,
+      goals,
+      assists,
+      mvpPoints: goals * 2 + assists,
+    });
   });
 
-  playerMatchStats.forEach((stat) => {
-    // Use bracket notation here
-    const playerId = stat["Player ID"];
-    if (playerTotals[playerId]) {
-      playerTotals[playerId].goals += stat.Goals;
-      playerTotals[playerId].assists += stat.Assists;
-    }
-  });
-
-  Object.values(playerTotals).forEach((p) => {
-    p.mvpPoints = p.goals * 2 + p.assists;
-  });
-
-  // 2. Sort players and teams
-  const sortedPlayers = Object.values(playerTotals).sort(
-    (a, b) => b.mvpPoints - a.mvpPoints
+  allPlayersWithStats.sort(
+    (a, b) => b.mvpPoints - a.mvpPoints || b.goals - a.goals
   );
-  const sortedTeams = [...teams].sort((a, b) => {
-    const pointsA = a.Wins * 3 + a.Draw;
-    const pointsB = b.Wins * 3 + b.Draw;
-    if (pointsB !== pointsA) return pointsB - pointsA;
-    const gdA = a["Goals For"] - a["Goals Against"];
-    const gdB = b["Goals For"] - b["Goals Against"];
-    if (gdB !== gdA) return gdB - gdA;
-    return b["Goals For"] - a["Goals For"];
-  });
 
-  // 3. Render HTML
+  const topScorer = [...allPlayersWithStats].sort(
+    (a, b) => b.goals - a.goals || b.assists - a.assists
+  )[0];
+  const topAssister = [...allPlayersWithStats].sort(
+    (a, b) => b.assists - a.assists || b.goals - a.goals
+  )[0];
+  const mvp = allPlayersWithStats[0];
+
   let html = `
+        <div class="card" style="margin-bottom: 30px;">
+            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 25px;">🏆 Tournament Awards</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px;">
+                ${
+                  mvp && mvp.mvpPoints > 0
+                    ? `
+                <div class="mvp-card">
+                    <h4 style="text-align: center;">👑 Tournament MVP</h4>
+                    <div class="mvp-player">
+                        <div class="mvp-crown">🏆</div>
+                        <div class="mvp-info">
+                            <div class="mvp-name">${mvp.Name}</div>
+                            <div class="mvp-team">${mvp.Team}</div>
+                            <div class="mvp-stats">${mvp.goals}G • ${mvp.assists}A • ${mvp.mvpPoints} MVP Points</div>
+                        </div>
+                    </div>
+                </div>`
+                    : ""
+                }
+                ${
+                  topScorer && topScorer.goals > 0
+                    ? `
+                <div class="mvp-card">
+                    <h4 style="text-align: center;">⚽ Top Goal Scorer</h4>
+                    <div class="mvp-player">
+                        <div class="mvp-crown">⚽</div>
+                        <div class="mvp-info">
+                            <div class="mvp-name">${topScorer.Name}</div>
+                            <div class="mvp-team">${topScorer.Team}</div>
+                            <div class="mvp-stats">${topScorer.goals} Goals</div>
+                        </div>
+                    </div>
+                </div>`
+                    : ""
+                }
+                ${
+                  topAssister && topAssister.assists > 0
+                    ? `
+                <div class="mvp-card">
+                    <h4 style="text-align: center;">🎯 Top Assist Provider</h4>
+                    <div class="mvp-player">
+                        <div class="mvp-crown">🎯</div>
+                        <div class="mvp-info">
+                            <div class="mvp-name">${topAssister.Name}</div>
+                            <div class="mvp-team">${topAssister.Team}</div>
+                            <div class="mvp-stats">${topAssister.assists} Assists</div>
+                        </div>
+                    </div>
+                </div>`
+                    : ""
+                }
+            </div>
+        </div>
+        
         <div class="card">
-            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 20px;">Player Leaderboard</h3>
+            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 20px;">📊 Player Leaderboard</h3>
             <div class="leaderboard-table">
                 <div class="leaderboard-header">
-                    <div class="rank-col">Rank</div>
-                    <div class="player-col">Player</div>
-                    <div class="team-col">Team</div>
-                    <div class="goals-col">Goals</div>
-                    <div class="assists-col">Assists</div>
-                    <div class="mvp-col">MVP Pts</div>
+                    <div class="rank-col">Rank</div><div class="player-col">Player</div><div class="team-col">Team</div>
+                    <div class="goals-col">Goals</div><div class="assists-col">Assists</div><div class="mvp-col">MVP Pts</div>
                 </div>
                 ${
-                  sortedPlayers
+                  allPlayersWithStats
                     .filter((p) => p.mvpPoints > 0)
                     .slice(0, 10)
                     .map(
@@ -289,52 +307,169 @@ export function updateStatsDisplay(teams, players, playerMatchStats) {
                 `
                     )
                     .join("") ||
-                  '<div class="no-stats" style="grid-column: 1 / -1; padding: 20px;">No player stats yet.</div>'
+                  '<div class="no-stats" style="grid-column: 1 / -1;">No player stats yet.</div>'
                 }
             </div>
         </div>
+    `;
+  display.innerHTML = html;
+}
 
-        <div class="card">
-            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 20px;">Team Standings</h3>
-            <div class="stats-grid">
-                ${sortedTeams
-                  .map((team, index) => {
-                    const goalDifference =
-                      team["Goals For"] - team["Goals Against"];
-                    return `
-                    <div class="stats-card">
-                        <div class="stats-header">
-                            <div class="rank-badge ${
-                              index === 0
-                                ? "first"
-                                : index === 1
-                                ? "second"
-                                : ""
-                            }">${index + 1}</div>
-                            ${team.id}
+export function updatePodiumDisplay(finalists) {
+  const display = document.getElementById("podiumDisplay");
+  if (finalists.length < 2) {
+    display.innerHTML = "";
+    return;
+  }
+  display.innerHTML = `
+        <div class="podium">
+            <h3>🏆 Championship Finalists</h3>
+            <div class="finalists">
+                ${finalists
+                  .map(
+                    (team, index) => `
+                    <div class="finalist">
+                        <h4>${index === 0 ? "🥇" : "🥈"} ${team.id}</h4>
+                        <div class="finalist-stats">
+                            ${team.Wins * 3 + team.Draws} points | ${
+                      team["Goals For"] - team["Goals Against"] > 0 ? "+" : ""
+                    }${team["Goals For"] - team["Goals Against"]} GD
                         </div>
-                        <div class="stat-row"><span class="stat-label">Points:</span><span class="stat-value">${
-                          team.Wins * 3 + team.Draw
-                        }</span></div>
-                        <div class="stat-row"><span class="stat-label">Record (W-D-L):</span><span class="stat-value">${
-                          team.Wins
-                        }-${team.Draw}-${team.Loss}</span></div>
-                        <div class="stat-row"><span class="stat-label">Goals For:</span><span class="stat-value">${
-                          team["Goals For"]
-                        }</span></div>
-                        <div class="stat-row"><span class="stat-label">Goals Against:</span><span class="stat-value">${
-                          team["Goals Against"]
-                        }</span></div>
-                        <div class="stat-row"><span class="stat-label">Goal Difference:</span><span class="stat-value">${
-                          goalDifference > 0 ? "+" : ""
-                        }${goalDifference}</span></div>
                     </div>
-                `;
-                  })
+                `
+                  )
                   .join("")}
             </div>
         </div>
     `;
-
-  display.innerHTML = html;
 }
+
+export function updateFinalsDisplay(finalMatch, players, isAdmin) {
+  const display = document.getElementById("finalsDisplay");
+  if (!finalMatch) {
+    display.innerHTML =
+      '<div class="alert alert-info">The final match will appear here once created by the admin.</div>';
+    return;
+  }
+
+  if (finalMatch.Completed) {
+    const winner =
+      finalMatch["Home Goals"] > finalMatch["Away Goals"]
+        ? finalMatch.Home
+        : finalMatch["Away Goals"] > finalMatch["Home Goals"]
+        ? finalMatch.Away
+        : "Draw";
+    display.innerHTML = `
+            <div class="match-card">
+                <div style="text-align: center; font-size: 2rem; font-weight: 700;">
+                    ${finalMatch.Home} ${finalMatch["Home Goals"]} - ${
+      finalMatch["Away Goals"]
+    } ${finalMatch.Away}
+                </div>
+                <div style="text-align: center; font-size: 1.5rem; color: #059669; font-weight: 700; margin-top: 20px;">
+                    🎉 ${
+                      winner !== "Draw"
+                        ? `${winner} wins the championship!`
+                        : "The final is a draw!"
+                    }
+                </div>
+            </div>
+        `;
+    triggerConfetti();
+  } else {
+    const getPlayersForTeam = (teamId) =>
+      players.filter((p) => p.Team === teamId);
+    display.innerHTML = `
+            <div class="match-card" data-match-id="${finalMatch.id}">
+                <div class="match-header">
+                    <div class="match-teams">${
+                      finalMatch.Home
+                    } <span class="vs-badge">FINAL</span> ${
+      finalMatch.Away
+    }</div>
+                </div>
+                ${
+                  isAdmin
+                    ? `
+                <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin: 20px 0;">
+                    <input type="number" id="homeGoals_${
+                      finalMatch.id
+                    }" class="stat-input" min="0" placeholder="0">
+                    <span>-</span>
+                    <input type="number" id="awayGoals_${
+                      finalMatch.id
+                    }" class="stat-input" min="0" placeholder="0">
+                </div>
+                <div class="player-stats-grid">
+                    ${[finalMatch.Home, finalMatch.Away]
+                      .map(
+                        (teamId) => `
+                        <div class="team-players">
+                            <h4>⚽ ${teamId} Players</h4>
+                            ${getPlayersForTeam(teamId)
+                              .map(
+                                (p) => `
+                                <div class="player-stat-row">
+                                    <span class="player-name">${p.Name}</span>
+                                    <div class="stat-inputs">
+                                        <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="goals" min="0" placeholder="G">
+                                        <input type="number" class="stat-input" data-player-id="${p.id}" data-stat="assists" min="0" placeholder="A">
+                                    </div>
+                                </div>`
+                              )
+                              .join("")}
+                        </div>
+                    `
+                      )
+                      .join("")}
+                </div>
+                <div style="text-align: center; margin-top: 25px;">
+                    <button class="btn btn-success record-result-btn" data-match-id="${
+                      finalMatch.id
+                    }">🏆 Record Final Result</button>
+                </div>
+                `
+                    : `<div class="alert alert-info" style="text-align: center;">The final match is pending.</div>`
+                }
+            </div>
+        `;
+  }
+}
+
+function triggerConfetti() {
+  const duration = 5 * 1000;
+  const animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+  function randomInRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  const interval = setInterval(function () {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) return clearInterval(interval);
+
+    const particleCount = 50 * (timeLeft / duration);
+    if (typeof confetti === "function") {
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+      });
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+      });
+    }
+  }, 250);
+}
+
+// Simple confetti script - include this or a library
+(function () {
+  const script = document.createElement("script");
+  script.src =
+    "https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js";
+  script.onload = () => console.log("Confetti loaded.");
+  document.head.appendChild(script);
+})();

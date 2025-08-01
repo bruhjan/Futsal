@@ -27,11 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const loader = document.getElementById("loader");
     const appContainer = document.getElementById("app-container");
 
-    state.isAdmin = !!user; // Sets to true if user exists, false otherwise
+    state.isAdmin = !!user;
     console.log(
-      state.isAdmin
-        ? `Admin user signed in: ${user.email}`
-        : "Proceeding as Guest."
+      state.isAdmin ? `Admin user signed in` : "Proceeding as Guest."
     );
 
     configureUIForRole(state.isAdmin);
@@ -61,7 +59,6 @@ async function initializeApp() {
     refreshAllTabs();
   } catch (error) {
     console.error("Failed to initialize the application:", error);
-    alert("Error: Could not load tournament data.");
   }
 }
 
@@ -89,15 +86,17 @@ function setupEventListeners() {
     .getElementById("resetTournamentBtn")
     .addEventListener("click", resetTournament);
 
-  // Listeners for Login and Logout buttons
   document.getElementById("logoutBtn").addEventListener("click", handleLogout);
   document.getElementById("loginRedirectBtn").addEventListener("click", () => {
-    window.location.href = "index.html"; // Redirect guest to login page
+    window.location.href = "index.html";
   });
 
-  document.getElementById("resultsDisplay").addEventListener("click", (e) => {
+  document.body.addEventListener("click", (e) => {
     if (e.target.classList.contains("record-result-btn")) {
       recordResult(e.target.dataset.matchId);
+    }
+    if (e.target.id === "createFinalBtn") {
+      createFinalMatch();
     }
   });
 }
@@ -135,13 +134,23 @@ function configureUIForRole(isAdmin) {
 
 // --- UI REFRESH LOGIC ---
 function refreshAllTabs() {
+  const finalMatch = state.matches.find((m) => m.isFinal);
+
   refreshTabContent("teams");
   refreshTabContent("schedule");
   if (state.isAdmin) refreshTabContent("results");
   refreshTabContent("stats");
+  if (finalMatch) {
+    document.querySelector('[data-tab="finals"]').style.display = "flex";
+    refreshTabContent("finals");
+  } else {
+    document.querySelector('[data-tab="finals"]').style.display = "none";
+  }
 }
 
 function refreshTabContent(tabName) {
+  const finalMatch = state.matches.find((m) => m.isFinal);
+
   switch (tabName) {
     case "teams":
       UI.updateTeamsDisplay(state.teams, state.players);
@@ -151,12 +160,32 @@ function refreshTabContent(tabName) {
       break;
     case "results":
       if (state.isAdmin) {
-        const pendingMatches = state.matches.filter((m) => !m.Completed);
-        UI.updateResultsDisplay(pendingMatches, state.players);
+        const roundRobinMatches = state.matches.filter((m) => !m.isFinal);
+        const pendingMatches = roundRobinMatches.filter((m) => !m.Completed);
+        const allRoundRobinDone =
+          roundRobinMatches.length === 6 && pendingMatches.length === 0;
+        UI.updateResultsDisplay(
+          pendingMatches,
+          state.players,
+          allRoundRobinDone && !finalMatch
+        );
       }
       break;
     case "stats":
       UI.updateStatsDisplay(state.teams, state.players, state.playerMatchStats);
+      const roundRobinMatches = state.matches.filter((m) => !m.isFinal);
+      if (
+        roundRobinMatches.length === 6 &&
+        roundRobinMatches.every((m) => m.Completed)
+      ) {
+        const sortedTeams = getSortedTeams();
+        UI.updatePodiumDisplay(sortedTeams.slice(0, 2));
+      } else {
+        UI.updatePodiumDisplay([]);
+      }
+      break;
+    case "finals":
+      UI.updateFinalsDisplay(finalMatch, state.players, state.isAdmin);
       break;
   }
 }
@@ -234,9 +263,7 @@ async function recordResult(matchId) {
   const awayGoals =
     parseInt(document.getElementById(`awayGoals_${matchId}`).value, 10) || 0;
 
-  const matchCard = document.querySelector(
-    `.match-card[data-match-id="${matchId}"]`
-  );
+  const matchCard = document.querySelector(`[data-match-id="${matchId}"]`);
   const playerStatInputs = matchCard.querySelectorAll("[data-player-id]");
 
   const statsByPlayer = {};
@@ -260,7 +287,7 @@ async function recordResult(matchId) {
       Object.values(statsByPlayer)
     );
     alert("Result recorded successfully!");
-    initializeApp();
+    await initializeApp();
   } catch (error) {
     console.error("Error recording result: ", error);
   }
@@ -270,15 +297,79 @@ async function resetTournament() {
   if (!state.isAdmin) return alert("Guests cannot reset the tournament.");
   if (
     confirm(
-      "Are you sure you want to reset all match results and player stats? This action cannot be undone."
+      "Are you sure you want to reset all tournament data? This action cannot be undone."
     )
   ) {
     try {
       await DB.resetTournamentData();
-      alert("Tournament progress has been successfully reset.");
+      alert("Tournament has been successfully reset.");
       initializeApp();
     } catch (error) {
       console.error("Failed to reset tournament:", error);
     }
+  }
+}
+
+// --- FINALS LOGIC ---
+function getSortedTeams() {
+  // This calculates standings based on round-robin results only
+  const teamsWithStandings = state.teams.map((team) => {
+    const roundRobinMatches = state.matches.filter(
+      (m) => !m.isFinal && (m.Home === team.id || m.Away === team.id)
+    );
+    let wins = 0,
+      draws = 0,
+      losses = 0,
+      goalsFor = 0,
+      goalsAgainst = 0;
+
+    roundRobinMatches.forEach((m) => {
+      if (m.Completed) {
+        if (m.Home === team.id) {
+          goalsFor += m["Home Goals"];
+          goalsAgainst += m["Away Goals"];
+          if (m["Home Goals"] > m["Away Goals"]) wins++;
+          else if (m["Home Goals"] < m["Away Goals"]) losses++;
+          else draws++;
+        } else {
+          goalsFor += m["Away Goals"];
+          goalsAgainst += m["Home Goals"];
+          if (m["Away Goals"] > m["Home Goals"]) wins++;
+          else if (m["Away Goals"] < m["Home Goals"]) losses++;
+          else draws++;
+        }
+      }
+    });
+    return {
+      ...team,
+      Wins: wins,
+      Draws: draws,
+      Losses: losses,
+      "Goals For": goalsFor,
+      "Goals Against": goalsAgainst,
+    };
+  });
+
+  return teamsWithStandings.sort((a, b) => {
+    const pointsA = a.Wins * 3 + a.Draws;
+    const pointsB = b.Wins * 3 + b.Draws;
+    if (pointsB !== pointsA) return pointsB - pointsA;
+    const gdA = a["Goals For"] - a["Goals Against"];
+    const gdB = b["Goals For"] - b["Goals Against"];
+    if (gdB !== gdA) return gdB - gdA;
+    return b["Goals For"] - a["Goals For"];
+  });
+}
+
+async function createFinalMatch() {
+  if (!state.isAdmin) return;
+  const sortedTeams = getSortedTeams();
+  const top2 = sortedTeams.slice(0, 2);
+  try {
+    await DB.createFinalMatch(top2[0], top2[1]);
+    alert(`Final match created between ${top2[0].id} and ${top2[1].id}!`);
+    await initializeApp();
+  } catch (error) {
+    console.error("Error creating final match:", error);
   }
 }
