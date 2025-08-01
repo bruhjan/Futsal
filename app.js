@@ -150,6 +150,10 @@ function refreshAllTabs() {
 
 function refreshTabContent(tabName) {
   const finalMatch = state.matches.find((m) => m.isFinal);
+  const roundRobinMatches = state.matches.filter((m) => !m.isFinal);
+  const pendingMatches = roundRobinMatches.filter((m) => !m.Completed);
+  const allRoundRobinDone =
+    roundRobinMatches.length === 6 && pendingMatches.length === 0;
 
   switch (tabName) {
     case "teams":
@@ -160,20 +164,19 @@ function refreshTabContent(tabName) {
       break;
     case "results":
       if (state.isAdmin) {
-        const roundRobinMatches = state.matches.filter((m) => !m.isFinal);
-        const pendingMatches = roundRobinMatches.filter((m) => !m.Completed);
-        const allRoundRobinDone =
-          roundRobinMatches.length === 6 && pendingMatches.length === 0;
         UI.updateResultsDisplay(
           pendingMatches,
           state.players,
           allRoundRobinDone && !finalMatch
         );
+        UI.updateFinalsDisplay(finalMatch, state.players, state.isAdmin);
       }
       break;
     case "stats":
       UI.updateStatsDisplay(state.teams, state.players, state.playerMatchStats);
-      const roundRobinMatches = state.matches.filter((m) => !m.isFinal);
+      break;
+    case "finals":
+      UI.showFinalsResult(finalMatch, state.players, state.isAdmin);
       if (
         roundRobinMatches.length === 6 &&
         roundRobinMatches.every((m) => m.Completed)
@@ -183,9 +186,6 @@ function refreshTabContent(tabName) {
       } else {
         UI.updatePodiumDisplay([]);
       }
-      break;
-    case "finals":
-      UI.updateFinalsDisplay(finalMatch, state.players, state.isAdmin);
       break;
   }
 }

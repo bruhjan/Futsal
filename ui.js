@@ -220,6 +220,16 @@ export function updateStatsDisplay(teams, players, playerMatchStats) {
   )[0];
   const mvp = allPlayersWithStats[0];
 
+  const sortedTeams = [...teams].sort((a, b) => {
+    const pointsA = a.Wins * 3 + a.Draw;
+    const pointsB = b.Wins * 3 + b.Draw;
+    if (pointsB !== pointsA) return pointsB - pointsA;
+    const gdA = a["Goals For"] - a["Goals Against"];
+    const gdB = b["Goals For"] - b["Goals Against"];
+    if (gdB !== gdA) return gdB - gdA;
+    return b["Goals For"] - a["Goals For"];
+  });
+
   let html = `
         <div class="card" style="margin-bottom: 30px;">
             <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 25px;">🏆 Tournament Awards</h3>
@@ -228,7 +238,7 @@ export function updateStatsDisplay(teams, players, playerMatchStats) {
                   mvp && mvp.mvpPoints > 0
                     ? `
                 <div class="mvp-card">
-                    <h4 style="text-align: center;">👑 Tournament MVP</h4>
+                    <h4 style="text-align: center;">👑 Composite Score </h4>
                     <div class="mvp-player">
                         <div class="mvp-crown">🏆</div>
                         <div class="mvp-info">
@@ -311,6 +321,47 @@ export function updateStatsDisplay(teams, players, playerMatchStats) {
                 }
             </div>
         </div>
+
+        <div class="card">
+            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 20px;">Team Standings</h3>
+            <div class="stats-grid">
+                ${sortedTeams
+                  .map((team, index) => {
+                    const goalDifference =
+                      team["Goals For"] - team["Goals Against"];
+                    return `
+                    <div class="stats-card">
+                        <div class="stats-header">
+                            <div class="rank-badge ${
+                              index === 0
+                                ? "first"
+                                : index === 1
+                                ? "second"
+                                : ""
+                            }">${index + 1}</div>
+                            ${team.id}
+                        </div>
+                        <div class="stat-row"><span class="stat-label">Points:</span><span class="stat-value">${
+                          team.Wins * 3 + team.Draw
+                        }</span></div>
+                        <div class="stat-row"><span class="stat-label">Record (W-D-L):</span><span class="stat-value">${
+                          team.Wins
+                        }-${team.Draw}-${team.Loss}</span></div>
+                        <div class="stat-row"><span class="stat-label">Goals For:</span><span class="stat-value">${
+                          team["Goals For"]
+                        }</span></div>
+                        <div class="stat-row"><span class="stat-label">Goals Against:</span><span class="stat-value">${
+                          team["Goals Against"]
+                        }</span></div>
+                        <div class="stat-row"><span class="stat-label">Goal Difference:</span><span class="stat-value">${
+                          goalDifference > 0 ? "+" : ""
+                        }${goalDifference}</span></div>
+                    </div>
+                `;
+                  })
+                  .join("")}
+            </div>
+        </div>
     `;
   display.innerHTML = html;
 }
@@ -329,7 +380,7 @@ export function updatePodiumDisplay(finalists) {
                   .map(
                     (team, index) => `
                     <div class="finalist">
-                        <h4>${index === 0 ? "🥇" : "🥈"} ${team.id}</h4>
+                        <h4>${team.id}</h4>
                         <div class="finalist-stats">
                             ${team.Wins * 3 + team.Draws} points | ${
                       team["Goals For"] - team["Goals Against"] > 0 ? "+" : ""
@@ -344,7 +395,7 @@ export function updatePodiumDisplay(finalists) {
     `;
 }
 
-export function updateFinalsDisplay(finalMatch, players, isAdmin) {
+export function showFinalsResult(finalMatch, players, isAdmin) {
   const display = document.getElementById("finalsDisplay");
   if (!finalMatch) {
     display.innerHTML =
@@ -376,7 +427,18 @@ export function updateFinalsDisplay(finalMatch, players, isAdmin) {
             </div>
         `;
     triggerConfetti();
-  } else {
+  }
+}
+
+export function updateFinalsDisplay(finalMatch, players, isAdmin) {
+  const display = document.getElementById("finalsLogs");
+  if (!finalMatch) {
+    display.innerHTML =
+      '<div class="alert alert-info">The final match will appear here once created by the admin.</div>';
+    return;
+  }
+
+  if (!finalMatch.Completed) {
     const getPlayersForTeam = (teamId) =>
       players.filter((p) => p.Team === teamId);
     display.innerHTML = `
