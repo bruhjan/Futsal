@@ -99,6 +99,19 @@ function setupEventListeners() {
       createFinalMatch();
     }
   });
+
+  // Event listener for showing goal scorers
+  const scheduleDisplay = document.getElementById("scheduleDisplay");
+  scheduleDisplay.addEventListener("click", (e) => {
+    const matchCard = e.target.closest(".match-card.clickable");
+    if (matchCard) {
+      const details = matchCard.querySelector(".match-details");
+      if (details) {
+        details.style.display =
+          details.style.display === "none" ? "block" : "none";
+      }
+    }
+  });
 }
 
 function configureUIForRole(isAdmin) {
@@ -160,7 +173,11 @@ function refreshTabContent(tabName) {
       UI.updateTeamsDisplay(state.teams, state.players);
       break;
     case "schedule":
-      UI.updateScheduleDisplay(state.matches);
+      UI.updateScheduleDisplay(
+        state.matches,
+        state.players,
+        state.playerMatchStats
+      );
       break;
     case "results":
       if (state.isAdmin) {

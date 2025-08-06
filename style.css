@@ -862,3 +862,57 @@ body::before {
         padding: 12px 5px;
     }
 }
+/* --- Styles for Match Card Expansion --- */
+
+.match-card.clickable:hover {
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    cursor: pointer;
+}
+
+.match-details {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.match-details h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 10px;
+}
+
+.goal-scorers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.goal-scorers-list {
+    list-style: none;
+    padding: 0;
+}
+
+.scorer-item {
+    padding: 8px 0;
+    font-weight: 500;
+    color: #475569;
+}
+
+.scorer-item::before {
+    content: '⚽';
+    margin-right: 10px;
+}
+
+/* --- Responsive adjustments for the expansion --- */
+@media (max-width: 768px) {
+    .goal-scorers-grid {
+        grid-template-columns: 1fr;
+    }
+}

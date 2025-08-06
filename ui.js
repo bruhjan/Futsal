@@ -71,23 +71,42 @@ export function updateTeamsDisplay(teams, players) {
   display.innerHTML = html;
 }
 
-export function updateScheduleDisplay(matches) {
+export function updateScheduleDisplay(matches, players, playerMatchStats) {
   const display = document.getElementById("scheduleDisplay");
-  const roundRobinMatches = matches.filter((m) => !m.isFinal);
-  if (roundRobinMatches.length === 0) {
+  if (matches.length === 0) {
     display.innerHTML =
-      '<div class="alert alert-info">No matches scheduled.</div>';
+      '<div class="alert alert-info">No matches scheduled. Admin can generate the schedule once 4 teams are registered.</div>';
     return;
   }
 
-  const html = roundRobinMatches
+  const getGoalScorersHTML = (matchId, teamId) => {
+    const scorers = playerMatchStats
+      .filter((s) => s["Match ID"] === matchId && s.Goals > 0)
+      .map((s) => {
+        const player = players.find((p) => p.id === s["Player ID"]);
+        return { ...player, goals: s.Goals };
+      })
+      .filter((p) => p && p.Team === teamId);
+
+    if (scorers.length === 0) return "<li>No goals scored</li>";
+
+    return scorers
+      .map((s) => `<li class="scorer-item">${s.Name} (${s.goals})</li>`)
+      .join("");
+  };
+
+  const allMatches = [...matches].sort((a, b) => a.isFinal - b.isFinal);
+
+  const html = allMatches
     .map(
       (match) => `
-        <div class="match-card">
+        <div class="match-card ${
+          match.Completed ? "clickable" : ""
+        }" data-match-id="${match.id}">
             <div class="match-header">
-                <div class="match-teams">${
-                  match.Home
-                } <span class="vs-badge">VS</span> ${match.Away}</div>
+                <div class="match-teams">${match.Home} <span class="vs-badge">${
+        match.isFinal ? "FINAL" : "VS"
+      }</span> ${match.Away}</div>
                 <div class="match-status ${
                   match.Completed ? "status-completed" : "status-pending"
                 }">
@@ -96,9 +115,32 @@ export function updateScheduleDisplay(matches) {
             </div>
             ${
               match.Completed
-                ? `<div style="text-align: center; font-size: 1.5rem; font-weight: 700;">
-                Final Score: ${match.Home} ${match["Home Goals"]} - ${match["Away Goals"]} ${match.Away}
-            </div>`
+                ? `
+                <div style="text-align: center; font-size: 1.5rem; font-weight: 700; margin-bottom: 15px;">
+                    Final Score: ${match.Home} ${match["Home Goals"]} - ${
+                    match["Away Goals"]
+                  } ${match.Away}
+                </div>
+                <div class="match-details" style="display: none;">
+                    <h4>Goal Scorers</h4>
+                    <div class="goal-scorers-grid">
+                        <div>
+                            <h5>${match.Home}</h5>
+                            <ul class="goal-scorers-list">${getGoalScorersHTML(
+                              match.id,
+                              match.Home
+                            )}</ul>
+                        </div>
+                        <div>
+                            <h5>${match.Away}</h5>
+                            <ul class="goal-scorers-list">${getGoalScorersHTML(
+                              match.id,
+                              match.Away
+                            )}</ul>
+                        </div>
+                    </div>
+                </div>
+                `
                 : ""
             }
         </div>
@@ -526,12 +568,3 @@ function triggerConfetti() {
     }
   }, 250);
 }
-
-// Simple confetti script - include this or a library
-(function () {
-  const script = document.createElement("script");
-  script.src =
-    "https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js";
-  script.onload = () => console.log("Confetti loaded.");
-  document.head.appendChild(script);
-})();
